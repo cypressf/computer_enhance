@@ -1,33 +1,133 @@
-use std::{fs::File, io::Read};
+use std::{error::Error, fs::File, io::Read, io::Write};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut file = File::open("listing_0037_single_register_mov")?;
-    let buffer = &mut [0; 2];
+fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = std::env::args().collect();
 
-    file.read_exact(buffer)?;
+    if args.len() != 3 {
+        panic!("Usage: disassemble input_file output_file")
+    }
 
-    println!("binary: {:b} {:b}", buffer[0], buffer[1]);
+    let mut input_file = File::open(&args[1])?;
+    let mut output_file = File::create(&args[2])?;
 
-    println!("binary: {:b} {:b}", buffer[0], buffer[1]);
+    writeln!(output_file, "bits 16")?;
+    writeln!(output_file)?;
 
-    let opcode = buffer[0] >> 2;
-    let d = (buffer[0] & 0b00000010) >> 1;
-    let w = buffer[0] & 0b00000001;
+    let mut buffer: Vec<u8> = Vec::new();
+    input_file.read_to_end(&mut buffer)?;
 
-    let mod_ = buffer[1] >> 6;
-    let reg = (buffer[1] & 0b00111000) >> 3;
-    let rm = buffer[1] & 0b00000111;
+    for i in (0..buffer.len()).step_by(2) {
+        println!("{}, {}", i, i + 1);
+        let opcode = buffer[i] >> 2;
+        let d = (buffer[i] & 0b00000010) >> 1;
+        let w = buffer[i] & 0b00000001;
 
-    let operation = match opcode {
-        0b100010 => "mov",
-        _ => panic!("unknown opcode {:b}", opcode),
-    };
-    let register = match (reg, w) {
-        (0b000, 0) => "AL",
-        (0b000, 1) => "AX",
-        (0b001, 0) => "CL",
-        _ => todo!("need to implement the register matching"),
-    };
+        let mod_ = buffer[i + 1] >> 6;
+        let reg = (buffer[i + 1] & 0b00111000) >> 3;
+        let rm = buffer[i + 1] & 0b00000111;
+
+        if mod_ != 0b11 {
+            panic!("Not a register to register mov");
+        }
+
+        let operation = match opcode {
+            0b100010 => "mov",
+            _ => todo!("unknown opcode {:b}", opcode),
+        };
+
+        fn register_for(reg: u8, w: u8) -> &'static str {
+            match (reg, w) {
+                (0b000, 0) => "al",
+                (0b001, 0) => "cl",
+                (0b010, 0) => "dl",
+                (0b011, 0) => "bl",
+
+                (0b100, 0) => "ah",
+                (0b101, 0) => "ch",
+                (0b110, 0) => "dh",
+                (0b111, 0) => "bh",
+
+                (0b000, 1) => "ax",
+                (0b001, 1) => "cx",
+                (0b010, 1) => "dx",
+                (0b011, 1) => "bx",
+
+                (0b100, 1) => "sp",
+                (0b101, 1) => "bp",
+                (0b110, 1) => "si",
+                (0b111, 1) => "di",
+
+                _ => panic!("Not valid binary"),
+            }
+        }
+        let reg = register_for(reg, w);
+        let rm = register_for(rm, w);
+
+        let (destination, source) = match d {
+            0 => (rm, reg),
+            1 => (reg, rm),
+            _ => panic!("Not valid binary"),
+        };
+        writeln!(output_file, "{} {}, {}", operation, destination, source)?;
+    }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+    use std::error::Error;
+
+    const NASM: &str = "nasm";
+    const DISASSEMBLE: &str = "disassemble";
+    const CMP: &str = "cmp";
+
+    const LISTING_0037: &str = "listing_0037_single_register_mov";
+    const LISTING_0037_DISASSEMBLED: &str = "listing_0037_disassembled.asm";
+    const LISTING_0037_REASSEMBLED: &str = "listing_0037_reassembled";
+    const LISTING_0038: &str = "listing_0038_many_register_mov";
+    const LISTING_0038_DISASSEMBLED: &str = "listing_0038_disassembled.asm";
+    const LISTING_0038_REASSEMBLED: &str = "listing_0038_reassembled";
+
+    fn it_disassembles_file(
+        input: &str,
+        disassembled: &str,
+        reassembled: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        Command::cargo_bin(DISASSEMBLE)?
+            .arg(input)
+            .arg(disassembled)
+            .ok()?;
+        Command::new(NASM)
+            .arg(disassembled)
+            .arg("-o")
+            .arg(reassembled)
+            .ok()?;
+        Command::new(CMP)
+            .arg(input)
+            .arg(reassembled)
+            .assert()
+            .success()
+            .stdout("");
+        Ok(())
+    }
+
+    #[test]
+    fn it_disassembles_single_register_mov() -> Result<(), Box<dyn Error>> {
+        it_disassembles_file(
+            LISTING_0037,
+            LISTING_0037_DISASSEMBLED,
+            LISTING_0037_REASSEMBLED,
+        )
+    }
+
+    #[test]
+    fn it_disassembles_many_register_mov() -> Result<(), Box<dyn Error>> {
+        it_disassembles_file(
+            LISTING_0038,
+            LISTING_0038_DISASSEMBLED,
+            LISTING_0038_REASSEMBLED,
+        )
+    }
 }
