@@ -85,13 +85,6 @@ mod tests {
     const DISASSEMBLE: &str = "disassemble";
     const CMP: &str = "cmp";
 
-    const LISTING_0037: &str = "listing_0037_single_register_mov";
-    const LISTING_0037_DISASSEMBLED: &str = "listing_0037_disassembled.asm";
-    const LISTING_0037_REASSEMBLED: &str = "listing_0037_reassembled";
-    const LISTING_0038: &str = "listing_0038_many_register_mov";
-    const LISTING_0038_DISASSEMBLED: &str = "listing_0038_disassembled.asm";
-    const LISTING_0038_REASSEMBLED: &str = "listing_0038_reassembled";
-
     fn it_disassembles_file(
         input: &str,
         disassembled: &str,
@@ -118,18 +111,36 @@ mod tests {
     #[test]
     fn it_disassembles_single_register_mov() -> Result<(), Box<dyn Error>> {
         it_disassembles_file(
-            LISTING_0037,
-            LISTING_0037_DISASSEMBLED,
-            LISTING_0037_REASSEMBLED,
+            "listing_0037_single_register_mov",
+            "0037_disassembled.asm",
+            "0037_reassembled",
         )
     }
 
     #[test]
     fn it_disassembles_many_register_mov() -> Result<(), Box<dyn Error>> {
         it_disassembles_file(
-            LISTING_0038,
-            LISTING_0038_DISASSEMBLED,
-            LISTING_0038_REASSEMBLED,
+            "listing_0038_many_register_mov",
+            "0038_disassembled.asm",
+            "0038_reassembled",
+        )
+    }
+
+    #[test]
+    fn it_disassembles_more_movs() -> Result<(), Box<dyn Error>> {
+        it_disassembles_file(
+            "listing_0039_more_movs.asm",
+            "0039_disassembled",
+            "0039_reassembled.asm",
+        )
+    }
+
+    #[test]
+    fn it_disassembles_challenge_movs() -> Result<(), Box<dyn Error>> {
+        it_disassembles_file(
+            "listing_0040_challenge_movs.asm",
+            "0040_disassembled",
+            "0040_reassembled.asm",
         )
     }
 }
