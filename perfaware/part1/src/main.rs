@@ -16,15 +16,42 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut buffer: Vec<u8> = Vec::new();
     input_file.read_to_end(&mut buffer)?;
 
-    for i in (0..buffer.len()).step_by(2) {
-        println!("{}, {}", i, i + 1);
-        let opcode = buffer[i] >> 2;
-        let d = (buffer[i] & 0b00000010) >> 1;
-        let w = buffer[i] & 0b00000001;
+    fn register_for(reg: u8, w: u8) -> &'static str {
+        match (reg, w) {
+            (0b000, 0) => "al",
+            (0b001, 0) => "cl",
+            (0b010, 0) => "dl",
+            (0b011, 0) => "bl",
 
-        let mod_ = buffer[i + 1] >> 6;
-        let reg = (buffer[i + 1] & 0b00111000) >> 3;
-        let rm = buffer[i + 1] & 0b00000111;
+            (0b100, 0) => "ah",
+            (0b101, 0) => "ch",
+            (0b110, 0) => "dh",
+            (0b111, 0) => "bh",
+
+            (0b000, 1) => "ax",
+            (0b001, 1) => "cx",
+            (0b010, 1) => "dx",
+            (0b011, 1) => "bx",
+
+            (0b100, 1) => "sp",
+            (0b101, 1) => "bp",
+            (0b110, 1) => "si",
+            (0b111, 1) => "di",
+
+            _ => panic!("Not valid binary"),
+        }
+    }
+
+    for i in (0..buffer.len()).step_by(2) {
+        let byte1 = buffer[i];
+        let opcode = byte1 >> 2;
+        let d = (byte1 & 0b00000010) >> 1;
+        let w = byte1 & 0b00000001;
+
+        let byte2 = buffer[i + 1];
+        let mod_ = byte2 >> 6;
+        let reg = (byte2 & 0b00111000) >> 3;
+        let rm = byte2 & 0b00000111;
 
         if mod_ != 0b11 {
             panic!("Not a register to register mov");
@@ -35,31 +62,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => todo!("unknown opcode {:b}", opcode),
         };
 
-        fn register_for(reg: u8, w: u8) -> &'static str {
-            match (reg, w) {
-                (0b000, 0) => "al",
-                (0b001, 0) => "cl",
-                (0b010, 0) => "dl",
-                (0b011, 0) => "bl",
-
-                (0b100, 0) => "ah",
-                (0b101, 0) => "ch",
-                (0b110, 0) => "dh",
-                (0b111, 0) => "bh",
-
-                (0b000, 1) => "ax",
-                (0b001, 1) => "cx",
-                (0b010, 1) => "dx",
-                (0b011, 1) => "bx",
-
-                (0b100, 1) => "sp",
-                (0b101, 1) => "bp",
-                (0b110, 1) => "si",
-                (0b111, 1) => "di",
-
-                _ => panic!("Not valid binary"),
-            }
-        }
         let reg = register_for(reg, w);
         let rm = register_for(rm, w);
 
