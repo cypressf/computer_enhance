@@ -33,10 +33,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let bytes = [*bytes.next().unwrap(), *bytes.next().unwrap()];
                         u16::from_le_bytes(bytes)
                     }
-                    _ => panic!("w must be 0 or 1, but was {:b}", w),
+                    _ => panic!("w must be 0 or 1, but was {w:b}"),
                 };
                 let register = register_for(reg, w);
-                format!("{} {}, {}", operation, register, data)
+                format!("{operation} {register}, {data}")
             }
             _ => match opcode {
                 0b100010 => {
@@ -50,25 +50,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let reg = (byte & 0b0011_1000) >> 3;
                     let rm = byte & 0b0000_0111;
 
-                    let (reg, rm): (String, String) = match mod_ {
+                    let (reg, rm) = match mod_ {
                         0b00 | 0b01 | 0b10 => {
                             let address_calculation = {
-                                let expression: String = match rm {
-                                    0b000 => "bx + si".into(),
-                                    0b001 => "bx + di".into(),
-                                    0b010 => "bp + si".into(),
-                                    0b011 => "bp + di".into(),
-                                    0b100 => "si".into(),
-                                    0b101 => "di".into(),
+                                let expression = match rm {
+                                    0b000 => "bx + si",
+                                    0b001 => "bx + di",
+                                    0b010 => "bp + si",
+                                    0b011 => "bp + di",
+                                    0b100 => "si",
+                                    0b101 => "di",
                                     0b110 => {
                                         if mod_ == 0b00 {
-                                            format!("{}", bytes.next().unwrap())
+                                            &bytes.next().unwrap().to_string()
                                         } else {
-                                            "bp".into()
+                                            "bp"
                                         }
                                     }
-                                    0b111 => "bx".into(),
-                                    _ => panic!("invalid reg {:b} must be 3 bits", rm),
+                                    0b111 => "bx",
+                                    _ => panic!("invalid reg {rm:b} must be 3 bits"),
                                 };
                                 let displacement: u16 = match mod_ {
                                     0b00 => 0,
@@ -77,32 +77,31 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         *bytes.next().unwrap(),
                                         *bytes.next().unwrap(),
                                     ]),
-                                    _ => panic!(
-                                        "invalid mod {:b} must be between 0b00 and 0b10",
-                                        mod_
-                                    ),
+                                    _ => {
+                                        panic!("invalid mod {mod_:b} must be between 0b00 and 0b10")
+                                    }
                                 };
 
                                 if displacement != 0 {
-                                    format!("[{} + {}]", expression, displacement)
+                                    format!("[{expression} + {displacement}]")
                                 } else {
-                                    format!("[{}]", expression)
+                                    format!("[{expression}]")
                                 }
                             };
                             (register_for(reg, w).into(), address_calculation)
                         }
                         0b11 => (register_for(reg, w).into(), register_for(rm, w).into()),
-                        _ => panic!("mod must be 2 bits, but was {:b}", mod_),
+                        _ => panic!("mod must be 2 bits, but was {mod_:b}"),
                     };
 
                     let (destination, source) = match d {
                         0 => (rm, reg),
                         1 => (reg, rm),
-                        _ => panic!("d must be 0 or 1, but was {:b}", d),
+                        _ => panic!("d must be 0 or 1, but was {d:b}"),
                     };
-                    format!("{} {}, {}", operation, destination, source)
+                    format!("{operation} {destination}, {source}")
                 }
-                _ => todo!("unknown opcode {:b}", opcode),
+                _ => todo!("unknown opcode {opcode:b}"),
             },
         };
         output_file.write_all((line + "\n").as_bytes())?;
