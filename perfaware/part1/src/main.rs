@@ -19,7 +19,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut bytes = buffer.iter();
 
     while let Some(byte) = bytes.next() {
-        println!("{:b}", byte);
         let opcode = byte >> 2;
 
         let line = match opcode >> 2 {
@@ -27,7 +26,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // immediate mov
                 let operation = "mov";
                 let w = (byte & 0b0000_1000) >> 3;
-                println!("w: {:b}", w);
                 let reg = byte & 0b0000_0111;
                 let data: u16 = match w {
                     0 => *bytes.next().unwrap() as u16,
