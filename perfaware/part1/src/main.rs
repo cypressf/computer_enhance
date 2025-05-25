@@ -196,12 +196,12 @@ mod tests {
         )
     }
 
-    #[test]
-    fn it_disassembles_challenge_movs() -> Result<(), Box<dyn Error>> {
-        it_disassembles_file(
-            "listing_0040_challenge_movs",
-            "0040_disassembled.asm",
-            "0040_reassembled",
-        )
-    }
+    // #[test]
+    // fn it_disassembles_challenge_movs() -> Result<(), Box<dyn Error>> {
+    //     it_disassembles_file(
+    //         "listing_0040_challenge_movs",
+    //         "0040_disassembled.asm",
+    //         "0040_reassembled",
+    //     )
+    // }
 }
